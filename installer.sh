@@ -113,7 +113,7 @@ if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}";
 fi
 
-if [[ ! systemctl is-active --quiet "${SERVICE_SYSTEMD_RESOLVED}" ]]; then
+if [ $(systemctl is-active --quiet "${SERVICE_SYSTEMD_RESOLVED}") !=  "active" ]; then
     info "Enable and start systemd-resolved"
     systemctl enable "${SERVICE_SYSTEMD_RESOLVED}"
     systemctl start "${SERVICE_SYSTEMD_RESOLVED}"
