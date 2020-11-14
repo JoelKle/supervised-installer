@@ -35,21 +35,17 @@ FILE_NM_CONNECTION="/etc/NetworkManager/system-connections/default"
 
 URL_RAW_BASE="https://raw.githubusercontent.com/home-assistant/supervised-installer/master/files"
 URL_VERSION="https://version.home-assistant.io/stable.json"
-URL_BIN_APPARMOR="${URL_RAW_BASE}/hassio-apparmor"
 URL_BIN_HASSIO="${URL_RAW_BASE}/hassio-supervisor"
 URL_DOCKER_DAEMON="${URL_RAW_BASE}/docker_daemon.json"
 URL_HA="${URL_RAW_BASE}/ha"
 URL_INTERFACES="${URL_RAW_BASE}/interfaces"
 URL_NM_CONF="${URL_RAW_BASE}/NetworkManager.conf"
 URL_NM_CONNECTION="${URL_RAW_BASE}/system-connection-default"
-URL_SERVICE_APPARMOR="${URL_RAW_BASE}/hassio-apparmor.service"
 URL_SERVICE_HASSIO="${URL_RAW_BASE}/hassio-supervisor.service"
-URL_APPARMOR_PROFILE="https://version.home-assistant.io/apparmor.txt"
 
 # Check env
 command -v systemctl > /dev/null 2>&1 || MISSING_PACKAGES+=("systemd")
 command -v nmcli > /dev/null 2>&1 || MISSING_PACKAGES+=("network-manager")
-command -v apparmor_parser > /dev/null 2>&1 || MISSING_PACKAGES+=("apparmor")
 command -v docker > /dev/null 2>&1 || MISSING_PACKAGES+=("docker")
 command -v jq > /dev/null 2>&1 || MISSING_PACKAGES+=("jq")
 command -v curl > /dev/null 2>&1 || MISSING_PACKAGES+=("curl")
@@ -79,10 +75,10 @@ if [ ! -f "$FILE_DOCKER_CONF" ]; then
 else
   STORAGE_DRIVER=$(docker info -f "{{json .}}" | jq -r -e .Driver)
   LOGGING_DRIVER=$(docker info -f "{{json .}}" | jq -r -e .LoggingDriver)
-  if [[ "$STORAGE_DRIVER" != "overlay2" ]]; then 
+  if [[ "$STORAGE_DRIVER" != "overlay2" ]]; then
     warn "Docker is using $STORAGE_DRIVER and not 'overlay2' as the storage driver, this is not supported."
   fi
-  if [[ "$LOGGING_DRIVER"  != "journald" ]]; then 
+  if [[ "$LOGGING_DRIVER"  != "journald" ]]; then
     warn "Docker is using $LOGGING_DRIVER and not 'journald' as the logging driver, this is not supported."
   fi
 fi
@@ -225,23 +221,6 @@ sed -i -e "s,%%BINARY_DOCKER%%,${BINARY_DOCKER},g" \
 
 chmod a+x "${PREFIX}/sbin/hassio-supervisor"
 systemctl enable hassio-supervisor.service > /dev/null 2>&1;
-
-#
-# Install Hass.io AppArmor
-info "Install AppArmor scripts"
-mkdir -p "${DATA_SHARE}/apparmor"
-curl -sL ${URL_BIN_APPARMOR} > "${PREFIX}/sbin/hassio-apparmor"
-curl -sL ${URL_SERVICE_APPARMOR} > "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
-curl -sL ${URL_APPARMOR_PROFILE} > "${DATA_SHARE}/apparmor/hassio-supervisor"
-
-sed -i "s,%%HASSIO_CONFIG%%,${CONFIG},g" "${PREFIX}/sbin/hassio-apparmor"
-sed -i -e "s,%%SERVICE_DOCKER%%,${SERVICE_DOCKER},g" \
-    -e "s,%%HASSIO_APPARMOR_BINARY%%,${PREFIX}/sbin/hassio-apparmor,g" \
-    "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
-
-chmod a+x "${PREFIX}/sbin/hassio-apparmor"
-systemctl enable hassio-apparmor.service > /dev/null 2>&1;
-systemctl start hassio-apparmor.service
 
 
 ##
